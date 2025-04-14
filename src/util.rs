@@ -12,9 +12,8 @@ impl Vec3 {
         Vec3 { x, y, z }
     }
 
-    pub fn normalize(&self) -> Vec3 {
-        let len = self.length();
-        Vec3::new(self.x / len, self.y / len, self.z / len)
+    pub fn unit_vector(&self) -> Vec3 {
+        *self / self.length()
     }
 
     pub fn length_squared(&self) -> f32 {

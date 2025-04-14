@@ -53,18 +53,22 @@ fn main() {
     // Iterate over the coordinates and pixels of the image
     for (x, y, pixel) in img_buf.enumerate_pixels_mut() {
 
+        // y --> i, x --> j
+
         if y != prev_line {
             println!("Rendering line {} of {} ({}%)", y, IMG_HEIGHT, y * 100 / IMG_HEIGHT);
             prev_line = y;
         }
 
-        let c = Color::new(
-            x as f32 / IMG_WIDTH as f32,
-            y as f32 / IMG_HEIGHT as f32,
-            1.0 - ((y + x) as f32 / (IMG_WIDTH + IMG_HEIGHT) as f32),
-        );
+        // Calculate ray parameters
+        let pixel_center = first_pixel_loc + (pixel_delta_u * x as f32) + (pixel_delta_v * y as f32);
+        let ray_dir = pixel_center - camera_center;
+        let ray = Ray::new(camera_center, ray_dir);
 
-        write_color(pixel, c);
+        // Calculate the color of the pixel by tracing the ray
+        let color = ray_color(&ray);
+        // Write the color to the pixel
+        write_color(pixel, color);
 
     }
 
@@ -76,7 +80,10 @@ fn main() {
 }
 
 fn ray_color(ray: &Ray) -> Color {
-    Color::new(0.0, 0.0, 0.0)
+    // Color::new(0.0, 0.0, 0.0)
+    let unit_vec = Vec3::unit_vector(ray.direction());
+    let a = 0.5 * (unit_vec.y + 1.0);
+    Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5, 0.7, 1.0) * a
 }
 
 fn write_color(
@@ -88,4 +95,13 @@ fn write_color(
     let b = (color.z * 255.0) as u8;
 
     *pixel = image::Rgb([r, g, b]);
+}
+
+fn hit_sphere(center: &Point, radius: u32, r: &Ray) -> bool {
+    let oc = &(*center - *r.origin());
+    let a = Vec3::dot(r.direction(), r.direction());
+    let b = 2.0 * Vec3::dot(r.direction(), oc);
+    let c = Vec3::dot(oc, oc) - radius as f32 * radius as f32;
+    let discriminant = (b * b) -  (4.0 * a * c);
+    discriminant >= 0.0
 }
