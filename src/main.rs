@@ -20,8 +20,8 @@ fn main() {
 
     // Image Constants
     const ASPECT_RATIO: f32 = 16.0 / 9.0; // Ideal aspect ratio
-    const IMG_WIDTH: u32 = 256;
-    const IMG_HEIGHT: u32 = (IMG_WIDTH as f32 / ASPECT_RATIO).min(1.0) as u32;
+    const IMG_WIDTH: u32 = 1920;
+    const IMG_HEIGHT: u32 = (IMG_WIDTH as f32 / ASPECT_RATIO).max(1.0) as u32;
 
     // Viewport Constants
     const VIEWPORT_HEIGHT: f32 = 2.0;
