@@ -1,4 +1,5 @@
 mod util;
+mod hittable;
 
 use util::{Ray, Vec3};
 
@@ -20,12 +21,12 @@ fn main() {
 
     // Image Constants
     const ASPECT_RATIO: f32 = 16.0 / 9.0; // Ideal aspect ratio
-    const IMG_WIDTH: u32 = 1920;
+    const IMG_WIDTH: u32 = 1000;
     const IMG_HEIGHT: u32 = (IMG_WIDTH as f32 / ASPECT_RATIO).max(1.0) as u32;
 
     // Viewport Constants
     const VIEWPORT_HEIGHT: f32 = 2.0;
-    const VIEWPORT_WIDTH: f32 = VIEWPORT_HEIGHT * (IMG_WIDTH / IMG_HEIGHT) as f32;
+    const VIEWPORT_WIDTH: f32 = VIEWPORT_HEIGHT * (IMG_WIDTH as f32 / IMG_HEIGHT as f32);
 
     // Camera Constants
     const FOCAL_LENGTH: f32 = 1.0;
@@ -47,7 +48,7 @@ fn main() {
     println!(" \n Running Raytrace... \n ");
 
 
-    let mut img_buf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::new(IMG_WIDTH, IMG_HEIGHT);
+    let mut img_buf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::new(IMG_WIDTH as u32, IMG_HEIGHT as u32);
     let mut prev_line = 0;
 
     // Iterate over the coordinates and pixels of the image
@@ -56,7 +57,7 @@ fn main() {
         // y --> i, x --> j
 
         if y != prev_line {
-            println!("Rendering line {} of {} ({}%)", y, IMG_HEIGHT, y * 100 / IMG_HEIGHT);
+            println!("Rendering line {} of {} ({}%)", y, IMG_HEIGHT, y * 100 / IMG_HEIGHT + 1);
             prev_line = y;
         }
 
@@ -80,9 +81,16 @@ fn main() {
 }
 
 fn ray_color(ray: &Ray) -> Color {
-    // Color::new(0.0, 0.0, 0.0)
+
+    let t = hit_sphere(&Point::new(0.0, 0.0, -1.0), 0.5, ray);
+
+    if t > 0.0 {
+        let n = Vec3::unit_vector(&(ray.at(t) - Point::new(0.0, 0.0, -1.0)));
+        return Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0) * 0.5;
+    }
+
     let unit_vec = Vec3::unit_vector(ray.direction());
-    let a = 0.5 * (unit_vec.y + 1.0);
+    let a = 0.8 * (unit_vec.y + 1.0);
     Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5, 0.7, 1.0) * a
 }
 
@@ -97,11 +105,22 @@ fn write_color(
     *pixel = image::Rgb([r, g, b]);
 }
 
-fn hit_sphere(center: &Point, radius: u32, r: &Ray) -> bool {
+fn hit_sphere(center: &Point, radius: f32, r: &Ray) -> f32 {
+
     let oc = &(*center - *r.origin());
-    let a = Vec3::dot(r.direction(), r.direction());
-    let b = 2.0 * Vec3::dot(r.direction(), oc);
-    let c = Vec3::dot(oc, oc) - radius as f32 * radius as f32;
-    let discriminant = (b * b) -  (4.0 * a * c);
-    discriminant >= 0.0
+    let a = r.direction().length_squared();
+    let h = Vec3::dot(&r.direction(), &oc);
+    let c = oc.length_squared() - (radius * radius);
+    let discriminant = (h * h) - (a * c);
+
+    // println!("Discriminant: {}", discriminant);
+
+    // if discriminant > 0.0 {
+    //     println!("Discriminant calculated val: {}", (-h - discriminant.sqrt()) / (2.0 * a) + 1.0);
+    // }
+
+    match discriminant < 0.0 {
+        true => -1.0,
+        false => (h - discriminant.sqrt()) / a
+    }
 }
