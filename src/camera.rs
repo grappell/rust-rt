@@ -1,5 +1,7 @@
+use crate::random::RandomGenerator;
 use crate::util::{Ray, Vec3};
-use crate::hittable::{HitRecord, Hittable, HittableList, Interval, Sphere};
+use crate::hittable::{HitRecord, Hittable, HittableList, Interval};
+use image::{ImageBuffer, Rgb};
 use Vec3 as Point;
 use Vec3 as Color;
 
@@ -13,13 +15,15 @@ pub struct Camera {
     pub img_width: u32,
     pub img_height: u32,
 
+    pub samples_per_pixel: u32,
+    pub pixel_sample_scale: f32,
+
     // Viewport Constants
     pub viewport_height: f32,
     pub viewport_width: f32,
 
     // Camera Constants
     pub focal_length: f32,
-
     pub camera_center: Point,
 
     // Vectors across the horizontal and down the vertical viewport edges
@@ -34,15 +38,20 @@ pub struct Camera {
     pub viewport_top_left: Vec3,
     pub first_pixel_loc: Vec3,
 
+    pub rand: RandomGenerator,
+
 }
 
 impl Camera {
 
-    pub fn initialize() -> Camera {
+    pub fn initialize(rand: RandomGenerator) -> Camera {
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
         let img_width: u32 = 1000;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
+
+        let samples_per_pixel: u32 = 100; // Number of samples per pixel
+        let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
         // Viewport Constants
         let viewport_height: f32 = 2.0;
@@ -68,6 +77,8 @@ impl Camera {
             aspect_ratio,
             img_width,
             img_height,
+            samples_per_pixel,
+            pixel_sample_scale,
             viewport_height,
             viewport_width,
             focal_length,
@@ -78,17 +89,15 @@ impl Camera {
             pixel_delta_v,
             viewport_top_left,
             first_pixel_loc,
+            rand
         }
     }
 
 
-    pub fn render(world: &HittableList) {
-
-        let camera = Camera::initialize();
+    pub fn render(camera: &mut Camera, world: &HittableList, img_buf: &mut ImageBuffer<image::Rgb<u8>, Vec<u8>>) {
 
         println!(" \n Running Raytrace... \n ");
 
-        let mut img_buf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32);
         let mut prev_line = 0;
     
         // Iterate over the coordinates and pixels of the image
@@ -100,23 +109,35 @@ impl Camera {
                 println!("Rendering line {} of {} ({}%)", y, camera.img_height, y * 100 / camera.img_height + 1);
                 prev_line = y;
             }
-    
-            // Calculate ray parameters
-            let pixel_center = camera.first_pixel_loc + (camera.pixel_delta_u * x as f32) + (camera.pixel_delta_v * y as f32);
-            let ray_dir = pixel_center - camera.camera_center;
-            let ray = Ray::new(camera.camera_center, ray_dir);
-    
-            // Calculate the color of the pixel by tracing the ray
-            let color = Camera::ray_color(&ray, &world);
+
+            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+
+            // Sample the pixel multiple times for anti-aliasing
+            for _sample in 0..camera.samples_per_pixel {
+                let r = camera.get_ray(x as f32, y as f32);
+                pixel_color = pixel_color + Camera::ray_color(&r, world);
+            }
+        
             // Write the color to the pixel
-            Camera::write_color(pixel, color);
+            Camera::write_color(pixel, pixel_color * camera.pixel_sample_scale);
     
         }
     
         println!("\n --- Done rendering --- \n");
-        img_buf.save(IMG_PATH).unwrap();
-        println!("Image saved to {}", IMG_PATH);
     
+    }
+
+    fn get_ray(&mut self, i: f32, j: f32) -> Ray {
+
+        let offset = self.rand.random_vec3_square();
+        let pixel_sample = self.first_pixel_loc
+            + (self.pixel_delta_u * (i + offset.x))
+            + (self.pixel_delta_v * (j + offset.y));
+
+        let origin = self.camera_center;
+        let direction = pixel_sample - origin;
+
+        Ray::new(origin, direction)
     }
 
     fn ray_color(ray: &Ray, world: &HittableList) -> Color {
@@ -136,10 +157,15 @@ impl Camera {
         pixel: &mut image::Rgb<u8>,
         color: Color,
     ) {
-        let r = (color.x * 255.0) as u8;
-        let g = (color.y * 255.0) as u8;
-        let b = (color.z * 255.0) as u8;
+        let r = color.x;
+        let g = color.y;
+        let b = color.z;
+
+        static INTENSITY: Interval = Interval::new(0.0, 1.0);
+        let rbyte = (256.0 * INTENSITY.clamp(r as f32)) as u8;
+        let gbyte = (256.0 * INTENSITY.clamp(g as f32)) as u8;
+        let bbyte = (256.0 * INTENSITY.clamp(b as f32)) as u8;
     
-        *pixel = image::Rgb([r, g, b]);
+        *pixel = image::Rgb([rbyte, gbyte, bbyte]);
     }
 }
