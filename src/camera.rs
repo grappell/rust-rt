@@ -10,6 +10,8 @@ pub const IMG_PATH: &str = "res/image.png";
 
 pub struct Camera {
 
+    pub max_depth: u32, // Maximum depth of recursion for ray tracing
+
     // Image Constants
     pub aspect_ratio: f32, // Ideal aspect ratio
     pub img_width: u32,
@@ -45,9 +47,12 @@ pub struct Camera {
 impl Camera {
 
     pub fn initialize(rand: RandomGenerator) -> Camera {
+
+        let max_depth: u32 = 10; // Maximum depth of recursion for ray tracing
+
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 1000;
+        let img_width: u32 = 512;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
         let samples_per_pixel: u32 = 100; // Number of samples per pixel
@@ -74,6 +79,7 @@ impl Camera {
         let first_pixel_loc = viewport_top_left + (( pixel_delta_u / 2.0 + pixel_delta_v / 2.0) * 0.5 as f32);
 
         Camera {
+            max_depth,
             aspect_ratio,
             img_width,
             img_height,
@@ -115,7 +121,7 @@ impl Camera {
             // Sample the pixel multiple times for anti-aliasing
             for _sample in 0..camera.samples_per_pixel {
                 let r = camera.get_ray(x as f32, y as f32);
-                pixel_color = pixel_color + Camera::ray_color(&r, world);
+                pixel_color = pixel_color + camera.ray_color(&r, world, camera.max_depth);
             }
         
             // Write the color to the pixel
@@ -140,11 +146,16 @@ impl Camera {
         Ray::new(origin, direction)
     }
 
-    fn ray_color(ray: &Ray, world: &HittableList) -> Color {
+    fn ray_color(&mut self, ray: &Ray, world: &HittableList, depth: u32) -> Color {
+
+        if depth <= 0 {
+            return Color::new(0.0, 0.0, 0.0); // No more light is collected if at max depth
+        }
 
         let rec = &mut HitRecord::new();
-        if world.hit(ray, Interval::new(0.0, f32::MAX), rec) {
-            return (rec.normal + Color::new(1.0, 1.0, 1.0)) * 0.5;
+        if world.hit(ray, Interval::new(0.001, f32::MAX), rec) {
+            let direction = self.rand.random_in_hemisphere(&rec.normal);
+            return (self.ray_color(&Ray::new(rec.point, direction), world, depth - 1)) * 0.5;
         }
     
         // Background color
