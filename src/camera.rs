@@ -52,7 +52,7 @@ impl Camera {
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 512;
+        let img_width: u32 = 1920;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
         let samples_per_pixel: u32 = 100; // Number of samples per pixel

@@ -34,7 +34,7 @@ fn main() {
 
     let material_ground = Box::new(Lambertian::new(Color::new(0.6, 0.6, 0.6)));
     let material_right = Box::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Box::new(Metal::new(Color::new(0.8, 0.6, 0.2)));
+    let material_left = Box::new(Metal::new(Color::new(0.8, 0.1, 0.2)));
 
     // Set up scene
     let mut world = HittableList::new();
