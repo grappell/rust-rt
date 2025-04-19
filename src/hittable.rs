@@ -1,16 +1,20 @@
 use core::f32;
+use std::sync::Arc;
 
 use crate::util::{Ray, Vec3};
+use crate::material::{Lambertian, Material};
 
 use Vec3 as Point;
+use Vec3 as Color;
 
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct HitRecord {
     pub point: Point,
     pub normal: Vec3,
     pub t: f32,
     pub front_face: bool,
+    pub material: Box<dyn Material>,
 }
 
 impl HitRecord {
@@ -25,6 +29,17 @@ impl HitRecord {
             normal: Vec3::new(0.0, 0.0, 0.0),
             t: 0.0,
             front_face: false,
+            material: Box::new(Lambertian::new(Color::new(1.0, 1.0, 1.0))),
+        }
+    }
+
+    pub fn clone(&self) -> Self {
+        HitRecord {
+            point: self.point,
+            normal: self.normal,
+            t: self.t,
+            front_face: self.front_face,
+            material: self.material.clone(),
         }
     }
 }
@@ -36,11 +51,12 @@ pub trait Hittable {
 pub struct Sphere {
     center: Point,
     radius: f32,
+    material: Box<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f32) -> Self {
-        Sphere { center, radius: radius.max(0.0) }
+    pub fn new(center: Point, radius: f32, material: Box<dyn Material>) -> Self {
+        Sphere { center, radius: radius.max(0.0), material }
     }
 }
 
@@ -70,6 +86,7 @@ impl Hittable for Sphere {
         rec.t = root;
         rec.point = r.at(root);
         rec.normal = (rec.point - self.center) / self.radius;
+        rec.material = self.material.clone();
 
         let outward_normal = (rec.point - self.center) / self.radius;
         rec.set_face_normal(r, &outward_normal);

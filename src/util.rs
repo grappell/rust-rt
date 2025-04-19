@@ -39,6 +39,16 @@ impl Vec3 {
             u.x * v.y - u.y * v.x,
         )
     }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
+    }
+
+    pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
+        *v - (*n * Vec3::dot(v, n) * 2.0)
+    }
+
 }
 
 impl ops::Add<&Vec3> for &Vec3 {
@@ -116,3 +126,12 @@ impl Ray {
         &self.origin
     }
 }
+
+
+pub fn linear_to_gamma(value: f32) -> f32 {
+    if value > 0.0 {
+        return value.sqrt();
+    }
+    0.0
+}
+

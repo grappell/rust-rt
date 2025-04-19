@@ -1,5 +1,5 @@
 use crate::random::RandomGenerator;
-use crate::util::{Ray, Vec3};
+use crate::util::{linear_to_gamma, Ray, Vec3};
 use crate::hittable::{HitRecord, Hittable, HittableList, Interval};
 use image::{ImageBuffer, Rgb};
 use Vec3 as Point;
@@ -154,8 +154,12 @@ impl Camera {
 
         let rec = &mut HitRecord::new();
         if world.hit(ray, Interval::new(0.001, f32::MAX), rec) {
-            let direction = self.rand.random_in_hemisphere(&rec.normal);
-            return (self.ray_color(&Ray::new(rec.point, direction), world, depth - 1)) * 0.5;
+            let res = rec.material.scatter(ray, rec, &mut self.rand);
+            if res.is_some() {
+                let (scattered, attenuation) = res.unwrap();
+                return &self.ray_color(&scattered, world, depth - 1) * &attenuation;
+            }
+            return Color::new(0.0, 0.0, 0.0); // No light is collected if no scatter occurs
         }
     
         // Background color
@@ -168,11 +172,15 @@ impl Camera {
         pixel: &mut image::Rgb<u8>,
         color: Color,
     ) {
-        let r = color.x;
-        let g = color.y;
-        let b = color.z;
+        let mut r = color.x;
+        let mut g = color.y;
+        let mut b = color.z;
 
-        static INTENSITY: Interval = Interval::new(0.0, 1.0);
+        r = linear_to_gamma(r);
+        g = linear_to_gamma(g);
+        b = linear_to_gamma(b);
+
+        static INTENSITY: Interval = Interval::new(0.0, 0.99999);
         let rbyte = (256.0 * INTENSITY.clamp(r as f32)) as u8;
         let gbyte = (256.0 * INTENSITY.clamp(g as f32)) as u8;
         let bbyte = (256.0 * INTENSITY.clamp(b as f32)) as u8;
