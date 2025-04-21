@@ -27,6 +27,7 @@ pub struct Camera {
     // Camera Constants
     pub focal_length: f32,
     pub camera_center: Point,
+    pub v_fov: f32,
 
     // Vectors across the horizontal and down the vertical viewport edges
     pub viewport_u: Vec3,
@@ -46,25 +47,27 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn initialize(rand: RandomGenerator) -> Camera {
+    pub fn initialize(fov: f32, rand: RandomGenerator) -> Camera {
 
         let max_depth: u32 = 10; // Maximum depth of recursion for ray tracing
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 1920;
+        let img_width: u32 = 1024;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
         let samples_per_pixel: u32 = 100; // Number of samples per pixel
         let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
-        // Viewport Constants
-        let viewport_height: f32 = 2.0;
-        let viewport_width: f32 = viewport_height * (img_width as f32 / img_height as f32);
-
         // Camera Constants
         let focal_length: f32 = 1.0;
         let camera_center: Point = Point::new(0.0, 0.0, 0.0);
+
+        // Viewport Constants
+        let theta = fov.to_radians();
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h * focal_length;
+        let viewport_width: f32 = viewport_height * (img_width as f32 / img_height as f32);
 
         // Vectors across the horizontal and down the vertical viewport edges
         let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
@@ -89,6 +92,7 @@ impl Camera {
             viewport_width,
             focal_length,
             camera_center,
+            v_fov: fov,
             viewport_u,
             viewport_v,
             pixel_delta_u,

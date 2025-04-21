@@ -5,7 +5,7 @@ mod random;
 mod material;
 
 use camera::Camera;
-use material::{Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal};
 use util::Vec3;
 use hittable::{HittableList, Sphere};
 use random::RandomGenerator;
@@ -25,21 +25,25 @@ fn main() {
 
     // Make random generator
     let rand = RandomGenerator::new();
+    let fov = 90.0;
 
     // Initialize camera
-    let mut camera = Camera::initialize(rand);
+    let mut camera = Camera::initialize(fov, rand);
 
     // Set up image buffer
     let mut img_buf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32);
 
     let material_ground = Box::new(Lambertian::new(Color::new(0.6, 0.6, 0.6)));
-    let material_right = Box::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Box::new(Metal::new(Color::new(0.8, 0.1, 0.2)));
+    // let material_left = Box::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
+    let material_left = Box::new(Dielectric::new(Color::new(0.1, 0.2, 0.5), 1.50));
+    let material_bubble = Box::new(Dielectric::new(Color::new(0.1, 0.2, 0.5), 1.00 / 1.50));
+    let material_right = Box::new(Metal::new(Color::new(0.8, 0.1, 0.2), 0.1));
 
     // Set up scene
     let mut world = HittableList::new();
-    world.add(Box::new(Sphere::new(Point::new(1.1, 1.0, -4.0), 1.5, material_left)));
-    world.add(Box::new(Sphere::new(Point::new(-1.0, 0.0, -2.0), 0.5, material_right)));
+    world.add(Box::new(Sphere::new(Point::new(-1.0, 0.0, -2.0), 0.5, material_left)));
+    world.add(Box::new(Sphere::new(Point::new(-1.0, 0.0, -2.0), 0.3, material_bubble)));
+    world.add(Box::new(Sphere::new(Point::new(1.1, 1.0, -4.0), 1.5, material_right)));
     world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -2.0), 100.0, material_ground)));
     
     // Render scene

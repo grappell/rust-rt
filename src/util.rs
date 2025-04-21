@@ -49,6 +49,13 @@ impl Vec3 {
         *v - (*n * Vec3::dot(v, n) * 2.0)
     }
 
+    pub fn refract(uv: &Vec3, n: &Vec3, ni_over_nt: f32) -> Vec3 {
+        let cos_theta = Vec3::dot(&(*uv * -1.0), n).min(1.0);
+        let r_out_prep = (*uv + (*n * cos_theta)) * ni_over_nt;
+        let r_out_parallel = *n * (1.0 - r_out_prep.length_squared()).abs().sqrt();
+        r_out_prep + r_out_parallel
+    }
+
 }
 
 impl ops::Add<&Vec3> for &Vec3 {
