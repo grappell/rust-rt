@@ -29,7 +29,7 @@ impl HitRecord {
             normal: Vec3::new(0.0, 0.0, 0.0),
             t: 0.0,
             front_face: false,
-            material: Box::new(Lambertian::new(Color::new(1.0, 1.0, 1.0))),
+            material: Lambertian::new(Color::new(1.0, 1.0, 1.0)),
         }
     }
 
@@ -55,8 +55,8 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f32, material: Box<dyn Material>) -> Self {
-        Sphere { center, radius: radius.max(0.0), material }
+    pub fn new(center: Point, radius: f32, material: Box<dyn Material>) -> Box<Self> {
+    Box::new(Sphere { center, radius: radius.max(0.0), material })
     }
 }
 

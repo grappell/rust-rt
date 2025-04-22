@@ -4,6 +4,8 @@ mod camera;
 mod random;
 mod material;
 
+use std::f32::consts::PI;
+
 use camera::Camera;
 use material::{Dielectric, Lambertian, Metal};
 use util::Vec3;
@@ -25,26 +27,32 @@ fn main() {
 
     // Make random generator
     let rand = RandomGenerator::new();
-    let fov = 90.0;
+
+    // Camera parameters
+    let fov = 20.0;
+    let look_from = Point::new(-2.0, 2.0, 1.0);
+    let look_at = Point::new(0.0, 0.0, -1.0);
 
     // Initialize camera
-    let mut camera = Camera::initialize(fov, rand);
+    let mut camera = Camera::initialize(fov, look_from, look_at, rand);
 
     // Set up image buffer
     let mut img_buf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32);
 
-    let material_ground = Box::new(Lambertian::new(Color::new(0.6, 0.6, 0.6)));
-    // let material_left = Box::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Box::new(Dielectric::new(Color::new(0.1, 0.2, 0.5), 1.50));
-    let material_bubble = Box::new(Dielectric::new(Color::new(0.1, 0.2, 0.5), 1.00 / 1.50));
-    let material_right = Box::new(Metal::new(Color::new(0.8, 0.1, 0.2), 0.1));
+    let mat_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
+    let mat_center = Lambertian::new(Color::new(0.1, 0.2, 0.5));
+    let mat_left = Dielectric::new(Color::new(0.5, 0.5, 0.5), 1.33);
+    let mat_bubble = Dielectric::new(Color::new(0.2, 0.1, 0.1), 1.0/1.33);
+    let mat_right = Metal::new(Color::new(0.8, 0.6, 0.2), 1.0);
+
 
     // Set up scene
     let mut world = HittableList::new();
-    world.add(Box::new(Sphere::new(Point::new(-1.0, 0.0, -2.0), 0.5, material_left)));
-    world.add(Box::new(Sphere::new(Point::new(-1.0, 0.0, -2.0), 0.3, material_bubble)));
-    world.add(Box::new(Sphere::new(Point::new(1.1, 1.0, -4.0), 1.5, material_right)));
-    world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -2.0), 100.0, material_ground)));
+    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, mat_ground));
+    world.add(Sphere::new(Point::new(0.0, 0.0, -1.2), 0.5, mat_center));
+    world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), 0.5, mat_left));
+    world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), 0.1, mat_bubble));
+    world.add(Sphere::new(Point::new(1.0, 0.0, -1.0), 0.5, mat_right));
     
     // Render scene
     Camera::render(&mut camera, &world, &mut img_buf);

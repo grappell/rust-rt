@@ -18,8 +18,8 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-    pub fn new(color: Color) -> Self {
-        Lambertian { albedo: color }
+    pub fn new(color: Color) -> Box<Self> {
+        Box::new(Lambertian { albedo: color })
     }
 }
 
@@ -38,7 +38,7 @@ impl Material for Lambertian {
     }
 
     fn clone(&self) -> Box<dyn Material> {
-        Box::new(Lambertian::new(self.albedo))
+        Lambertian::new(self.albedo)
     }
 }
 
@@ -49,8 +49,8 @@ pub struct Metal {
 }
 
 impl Metal {
-    pub fn new(color: Color, fuzz: f32) -> Self {
-        Metal { albedo: color , fuzz: fuzz.max(0.0) }
+    pub fn new(color: Color, fuzz: f32) -> Box<Self> {
+        Box::new(Metal { albedo: color , fuzz: fuzz.max(0.0) })
     }
 }
 
@@ -69,7 +69,7 @@ impl Material for Metal {
     }
 
     fn clone(&self) -> Box<dyn Material> {
-        Box::new(Metal::new(self.albedo, self.fuzz))
+       Metal::new(self.albedo, self.fuzz)
     }
 }
 
@@ -80,12 +80,12 @@ pub struct Dielectric {
 }
 
 impl Dielectric {
-    pub fn new(color: Color, refractive_index: f32) -> Self {
-        Dielectric { albedo: color , refractive_index }
+    pub fn new(color: Color, refractive_index: f32) -> Box<Self> {
+        Box::new(Dielectric { albedo: color , refractive_index })
     }
 
-    fn reflectance(&self, cosine: f32) -> f32 {
-        let r0 = ((1.0 - self.refractive_index) / (1.0 + self.refractive_index)).powi(2);
+    fn reflectance(&self, cosine: f32, refractive_index: f32) -> f32 {
+        let r0 = ((1.0 - refractive_index) / (1.0 + self.refractive_index)).powi(2);
         r0 + (1.0 - r0 ) * ((1.0 - cosine).powi(5))
     }
 }
@@ -98,10 +98,10 @@ impl Material for Dielectric {
         let unit_direction = ray_in.direction().unit_vector();
 
         let cos_theta = Vec3::dot(&(unit_direction * -1.0), &rec.normal).min(1.0);
-        let sin_theta = (1.0 - (cos_theta * cos_theta)).sqrt();
+        let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
 
         let cannot_refract = ri * sin_theta > 1.0;
-        let dir = if cannot_refract || self.reflectance(cos_theta) > rand.random_float_range(0.0, 1.0)
+        let dir = if cannot_refract || self.reflectance(cos_theta, ri) > rand.random_float_range(0.0, 0.9999)
             {Vec3::reflect(&unit_direction, &rec.normal)} else 
             {Vec3::refract(&unit_direction, &rec.normal, ri)};
 
@@ -111,7 +111,7 @@ impl Material for Dielectric {
     }
 
     fn clone(&self) -> Box<dyn Material> {
-        Box::new(Dielectric::new(self.albedo, self.refractive_index))
+        Dielectric::new(self.albedo, self.refractive_index)
     }
 
 }

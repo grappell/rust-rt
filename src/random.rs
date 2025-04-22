@@ -44,12 +44,13 @@ impl RandomGenerator {
         };
     }
 
-    pub fn random_in_hemisphere(&mut self, normal: &Vec3) -> Vec3 {
-        let in_unit_sphere = self.random_unit_vector_on_sphere();
-        if Vec3::dot(&in_unit_sphere, normal) > 0.0 {
-            in_unit_sphere
-        } else {
-            in_unit_sphere * -1.0
+    pub fn random_on_disk(&mut self) -> Vec3 {
+        loop {
+            let mut p = self.random_vec3_range(-1.0, 1.0);
+            p.z = 0.0;
+            if p.length_squared() < 1.0 {
+                return p
+            }
         }
     }
 }
