@@ -13,6 +13,10 @@ impl RandomGenerator {
         }
     }
 
+    pub fn random_float(&mut self) -> f32 {
+        self.random_float_range(0.0, 1.0)
+    }
+
     pub fn random_float_range(&mut self, min: f32, max: f32) -> f32 {
         let uniform = Uniform::new(min, max).unwrap(); // Use the Uniform distribution from the rand crate
         uniform.sample(&mut self.rng) // Sample from the distribution using self.rng

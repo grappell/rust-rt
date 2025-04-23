@@ -62,15 +62,15 @@ impl Camera {
         let max_depth: u32 = 10; // Maximum depth of recursion for ray tracing
         let vup = Vec3::new(0.0, 1.0, 0.0);
 
-        let defocus_angle = 10.0;
-        let focus_dist = 3.4;
+        let defocus_angle = 0.6;
+        let focus_dist = 10.0;
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 512;
+        let img_width: u32 = 1920;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
-        let samples_per_pixel: u32 = 50; // Number of samples per pixel
+        let samples_per_pixel: u32 = 100; // Number of samples per pixel
         let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
         // Camera Constants

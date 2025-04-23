@@ -45,12 +45,12 @@ impl Material for Lambertian {
 #[derive(Clone, Debug)]
 pub struct Metal {
     albedo: Color,
-    fuzz: f32,
+    specular: f32,
 }
 
 impl Metal {
     pub fn new(color: Color, fuzz: f32) -> Box<Self> {
-        Box::new(Metal { albedo: color , fuzz: fuzz.max(0.0) })
+        Box::new(Metal { albedo: color , specular: fuzz.max(0.0) })
     }
 }
 
@@ -58,7 +58,7 @@ impl Material for Metal {
     fn scatter(&self, ray_in: &Ray, rec: &HitRecord, rand: &mut RandomGenerator) -> Option<(Ray, Vec3)> {
 
         let mut reflected = Vec3::reflect(&ray_in.direction(), &rec.normal);
-        reflected = reflected.unit_vector() + (rand.random_unit_vector_on_sphere() * self.fuzz);
+        reflected = reflected.unit_vector() + (rand.random_unit_vector_on_sphere() * self.specular);
         let scattered = Ray::new(rec.point, reflected);
 
         match Vec3::dot(scattered.direction(), &rec.normal) > 0.0 {
@@ -69,7 +69,7 @@ impl Material for Metal {
     }
 
     fn clone(&self) -> Box<dyn Material> {
-       Metal::new(self.albedo, self.fuzz)
+       Metal::new(self.albedo, self.specular)
     }
 }
 
