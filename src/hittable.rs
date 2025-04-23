@@ -44,7 +44,7 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable {
+pub trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, interval: Interval, rec: &mut HitRecord) -> bool;
 }
 
@@ -55,8 +55,8 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f32, material: Box<dyn Material>) -> Box<Self> {
-    Box::new(Sphere { center, radius: radius.max(0.0), material })
+    pub fn new(center: Point, radius: f32, material: Box<dyn Material>) -> Arc<Self> {
+        Arc::new(Sphere { center, radius: radius.max(0.0), material })
     }
 }
 
@@ -97,7 +97,7 @@ impl Hittable for Sphere {
 
 
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -105,7 +105,7 @@ impl HittableList {
         HittableList { objects: Vec::new() }
     }
 
-    pub fn add(&mut self, object: Box<dyn Hittable>) {
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);
     }
 }
@@ -143,13 +143,13 @@ impl Interval {
         Interval { min, max }
     }
 
-    pub fn size(&self) -> f32 {
-        self.max - self.min
-    }
+    // pub fn size(&self) -> f32 {
+    //     self.max - self.min
+    // }
 
-    pub fn contains(&self, value: f32) -> bool {
-        self.min <= value && value <= self.max
-    }
+    // pub fn contains(&self, value: f32) -> bool {
+    //     self.min <= value && value <= self.max
+    // }
 
     pub fn surrounds(&self, value: f32) -> bool {
        self.min < value && value < self.max
@@ -159,11 +159,11 @@ impl Interval {
         value.clamp(self.min, self.max)
     }
 
-    pub fn empty() -> Interval {
-        Interval { min: f32::MAX, max: f32::MIN }
-    }
+    // pub fn empty() -> Interval {
+    //     Interval { min: f32::MAX, max: f32::MIN }
+    // }
 
-    pub fn universe() -> Interval {
-        Interval { min: f32::MIN, max: f32::MAX }
-    }
+    // pub fn universe() -> Interval {
+    //     Interval { min: f32::MIN, max: f32::MAX }
+    // }
 }

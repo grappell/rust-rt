@@ -24,7 +24,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray_in: &Ray, rec: &HitRecord, rand: &mut RandomGenerator) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray_in: &Ray, rec: &HitRecord, rand: &mut RandomGenerator) -> Option<(Ray, Vec3)> {
         let mut scatter_dir = rec.normal + rand.random_unit_vector_on_sphere();
 
         if scatter_dir.near_zero() {
