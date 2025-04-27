@@ -105,8 +105,8 @@ impl Material for Dielectric {
             {Vec3::reflect(&unit_direction, &rec.normal)} else 
             {Vec3::refract(&unit_direction, &rec.normal, ri)};
 
-        // Some((Ray::new(rec.point, refracted), self.albedo))
-        Some((Ray::new(rec.point, dir), Color::new(1.0, 1.0, 1.0))) // TODO: Fix this to use the albedo
+        Some((Ray::new(rec.point, Vec3::refract(&unit_direction, &rec.normal, ri)), self.albedo))
+        // Some((Ray::new(rec.point, dir), Color::new(1.0, 1.0, 1.0))) // TODO: Fix this to use the albedo
         
     }
 

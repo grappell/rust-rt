@@ -5,8 +5,8 @@ use image::ImageBuffer;
 use Vec3 as Point;
 use Vec3 as Color;
 
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::sync::{mpsc, Arc};
+use std::{thread, vec};
 
 pub struct Camera {
    
@@ -48,10 +48,10 @@ impl Camera {
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 1920;
+        let img_width: u32 = 512;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
-        let samples_per_pixel: u32 = 100; // Number of samples per pixel
+        let samples_per_pixel: u32 = 10; // Number of samples per pixel
         let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
         // Camera Constants
@@ -101,52 +101,85 @@ impl Camera {
     }
 
 
-    pub fn render(camera: Arc<Camera>, world: Arc<HittableList>, img_buf: Arc<Mutex<ImageBuffer<image::Rgb<u8>, Vec<u8>>>>, img_path: String) {
+    pub fn render(camera: Arc<Camera>, world: Arc<HittableList>, mut img_buf: ImageBuffer<image::Rgb<u8>, Vec<u8>>, img_path: String) {
         
-        println!(" \n Running Parallel Raytrace... \n ");
+        println!("\nRunning Parallel Raytrace... \n");
+
+        let num_cores = 4;
+        let rows_per_thread = camera.img_height / num_cores;
+        let mut rcv_count = 0;
+
+        let (tx, rx) = mpsc::channel();
 
         let mut handles = vec![];
 
-        for y in 0..camera.img_height {
+        for thread in 0..num_cores {
 
             let camera = Arc::clone(&camera);
             let world = Arc::clone(&world);
-            let img_buf = Arc::clone(&img_buf);
-    
+            let tx = tx.clone();
+
             let handle = thread::spawn(move || {
 
                 let mut rand = RandomGenerator::new();
+                let start_row = thread * rows_per_thread as u32;
+                let end_row = (thread + 1) * rows_per_thread as u32;
 
-                for x in 0..camera.img_width {
-                    let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                let mut section = vec![];
+
+                for y in start_row..end_row {
+
+                    println!("[THREAD {}] Rendering {}% done (line {} of {})", thread, (((y - start_row) as f32 / (end_row - start_row) as f32) * 100.0).round(), y - start_row, end_row - start_row);
+
+                    for x in 0..camera.img_width {
     
-                    for _sample in 0..camera.samples_per_pixel {
-                        let r = camera.get_ray(x as f32, y as f32, &mut rand);
-                        pixel_color = pixel_color + camera.ray_color(&r, &world, camera.max_depth, &mut rand);
+                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+        
+                        for _sample in 0..camera.samples_per_pixel {
+                            let r = camera.get_ray(x as f32, y as f32, &mut rand);
+                            pixel_color = pixel_color + camera.ray_color(&r, &world, camera.max_depth, &mut rand);
+                        }
+    
+                        section.push(PixelData {
+                            loc: (x, y),
+                            color: pixel_color * camera.pixel_sample_scale
+                        });
+
                     }
-    
-                    let mut img_buf = img_buf.lock().unwrap();
-                    let pixel = img_buf.get_pixel_mut(x, y);
-                    Camera::write_color(pixel, pixel_color * camera.pixel_sample_scale);
                 }
-            });
+
+                println!("Sending Section");
+                tx.send(section).unwrap();
     
+            });
+
             handles.push(handle);
         }
-    
-        let total_threads = camera.img_height;
-        let mut completed_count= 0;
+
         for handle in handles {
             handle.join().unwrap();
-            completed_count += 1;
-            println!("Rendering: {}% of threads complete ({} of {})", (completed_count as f32 / total_threads as f32) * 100.0, completed_count, total_threads)
+            // println!("[THREAD] Rendering: {}% done ({} of {})", ((threads_completed as f32 / num_cores as f32) * 100.0).round(), threads_completed, num_cores);
         }
 
-        let buf = img_buf.lock().unwrap();
-        buf.save(&img_path).expect(("Unable to save image to ".to_owned() + &img_path).as_str());
+        for section in rx.iter() {
+            
+            for px in section {
+                Camera::write_color(img_buf.get_pixel_mut(px.loc.0, px.loc.1), px.color);
+            }
+
+            rcv_count += 1;
+
+            println!("[MAIN] Writing Section: {}% done ({} of {})", ((rcv_count as f32 / num_cores as f32) * 100.0).round(), rcv_count, num_cores);
+
+            if rcv_count == num_cores as i32 {
+                break;
+            }
+
+        }
+    
+        img_buf.save(&img_path).expect(("Unable to save image to ".to_owned() + &img_path).as_str());
         println!("Image saved to {}", &img_path);
         
-
     }
 
     fn get_ray(&self, i: f32, j: f32, rand: &mut RandomGenerator) -> Ray {
@@ -189,10 +222,7 @@ impl Camera {
         Color::new(1.0, 1.0, 1.0) * (1.0 - a) + Color::new(0.5 - 0.1, 0.7 - 0.1, 1.0) * a
     }
     
-    fn write_color(
-        pixel: &mut image::Rgb<u8>,
-        color: Color,
-    ) {
+    fn write_color(pixel: &mut image::Rgb<u8>, color: Color) {
         let mut r = color.x;
         let mut g = color.y;
         let mut b = color.z;
@@ -207,5 +237,12 @@ impl Camera {
         let bbyte = (256.0 * INTENSITY.clamp(b as f32)) as u8;
     
         *pixel = image::Rgb([rbyte, gbyte, bbyte]);
+        // image::Rgb([rbyte, gbyte, bbyte])
     }
+}
+
+#[derive(Debug)]
+pub struct PixelData {
+    loc: (u32, u32),
+    color: Color,
 }

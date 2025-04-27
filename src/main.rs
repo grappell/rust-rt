@@ -27,6 +27,7 @@ fn main() {
 
     let mut img_path = "res/image".to_owned();
     img_path.push_str(&rand.random_chars(4));
+    img_path.push_str(".png");
 
     // Camera parameters
     let fov = 20.0;
@@ -37,7 +38,8 @@ fn main() {
     let camera = Camera::initialize(fov, look_from, look_at);
 
     // Set up image buffer
-    let img_buf = Arc::new(Mutex::new(image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32)));
+    // let img_buf = Arc::new(Mutex::new(image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32)));
+    let img_buf = image::ImageBuffer::new(camera.img_width as u32, camera.img_height as u32);
 
     // Set up scene
     let mut world = HittableList::new();
@@ -45,8 +47,8 @@ fn main() {
     let mat_ground = Lambertian::new(Color::new(0.5, 0.5, 0.5));
     world.add(Sphere::new(Point::new(0.0, -1000.0, 0.0), 1000.0, mat_ground));
 
-    for a in -11..11 {
-        for b in -22..11 {
+    for a in -22..22{
+        for b in -11..11 {
             let choose_mat = &rand.random_float();
 
             let center = Point::new(a as f32 + 0.9 * &rand.random_float(), 0.2, b as f32 + 0.9 * &rand.random_float());
