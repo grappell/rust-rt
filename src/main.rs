@@ -4,7 +4,7 @@ mod camera;
 mod random;
 mod material;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use camera::Camera;
 use material::{Dielectric, Lambertian, Metal};
@@ -74,7 +74,7 @@ fn main() {
         }
     }
 
-    let mat_1 = Dielectric::new(Color::new(1.0, 1.0, 1.0), 1.5);
+    let mat_1 = Dielectric::new(Color::new(1.0, 1.0, 1.0), 1.33);
     world.add(Sphere::new(Point::new(0.0, 1.0, 0.0), 1.0, mat_1));
 
     let mat_2 = Lambertian::new(Color::new(0.4, 0.2, 0.1));

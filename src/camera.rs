@@ -48,10 +48,10 @@ impl Camera {
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 512;
+        let img_width: u32 = 3840;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
-        let samples_per_pixel: u32 = 10; // Number of samples per pixel
+        let samples_per_pixel: u32 = 100; // Number of samples per pixel
         let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
         // Camera Constants
@@ -105,9 +105,12 @@ impl Camera {
         
         println!("\nRunning Parallel Raytrace... \n");
 
-        let num_cores = 4;
+        let num_cores = thread::available_parallelism().unwrap().get() as u32;
+        // let rows_per_thread = (camera.img_height as f32 / num_cores as f32).ceil() as u32;
         let rows_per_thread = camera.img_height / num_cores;
         let mut rcv_count = 0;
+
+        println!("\nUsing {} cores\n", num_cores);
 
         let (tx, rx) = mpsc::channel();
 
