@@ -6,6 +6,7 @@ use Vec3 as Point;
 use Vec3 as Color;
 
 use std::sync::{mpsc, Arc};
+use std::time::SystemTime;
 use std::{thread, vec};
 
 pub struct Camera {
@@ -43,15 +44,15 @@ impl Camera {
         let max_depth: u32 = 10; // Maximum depth of recursion for ray tracing
         let vup = Vec3::new(0.0, 1.0, 0.0);
 
-        let defocus_angle = 0.6;
+        let defocus_angle = 3.0;
         let focus_dist = 10.0;
 
         // Image Constants
         let aspect_ratio: f32 = 16.0 / 9.0; // Ideal aspect ratio
-        let img_width: u32 = 3840;
+        let img_width: u32 = 512;
         let img_height: u32 = (img_width as f32 / aspect_ratio).max(1.0) as u32;
 
-        let samples_per_pixel: u32 = 100; // Number of samples per pixel
+        let samples_per_pixel: u32 = 50; // Number of samples per pixel
         let pixel_sample_scale: f32 = 1.0 / samples_per_pixel as f32; // Scale for averaging pixel samples
 
         // Camera Constants
@@ -104,6 +105,7 @@ impl Camera {
     pub fn render(camera: Arc<Camera>, world: Arc<HittableList>, mut img_buf: ImageBuffer<image::Rgb<u8>, Vec<u8>>, img_path: String) {
         
         println!("\nRunning Parallel Raytrace... \n");
+        let now = SystemTime::now();
 
         let num_cores = thread::available_parallelism().unwrap().get() as u32;
         // let rows_per_thread = (camera.img_height as f32 / num_cores as f32).ceil() as u32;
@@ -151,7 +153,7 @@ impl Camera {
                     }
                 }
 
-                println!("Sending Section");
+                println!("\n [THREAD {}] FINISHED - Sending Section \n", thread);
                 tx.send(section).unwrap();
     
             });
@@ -181,7 +183,12 @@ impl Camera {
         }
     
         img_buf.save(&img_path).expect(("Unable to save image to ".to_owned() + &img_path).as_str());
-        println!("Image saved to {}", &img_path);
+        println!("\nImage saved to {}", &img_path);
+
+        let after = SystemTime::now();
+        let duration = after.duration_since(now).expect("Clock went backwards??");
+
+        println!("\nRender Stats: \n - Total render time: {} sec \n - Total Pixels Calculated: {} \n - Average px/ms: {} \n", &duration.as_secs(), camera.img_width * camera.img_height, (camera.img_width * camera.img_height) as u128 / &duration.as_millis());
         
     }
 
