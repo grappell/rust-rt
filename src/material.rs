@@ -24,7 +24,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray_in: &Ray, rec: &HitRecord, rand: &mut RandomGenerator) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray_in: &Ray, rec: &HitRecord, rand: &mut RandomGenerator) -> Option<(Ray, Vec3)> {
         let mut scatter_dir = rec.normal + rand.random_unit_vector_on_sphere();
 
         if scatter_dir.near_zero() {
@@ -95,17 +95,16 @@ impl Material for Dielectric {
 
         let ri = if rec.front_face { 1.0 / self.refractive_index } else { self.refractive_index };
             
-        let unit_direction = ray_in.direction().unit_vector();
+        let unit_direction = ray_in.direction().unit_vector() * -1.0;
 
-        let cos_theta = Vec3::dot(&(unit_direction * -1.0), &rec.normal).min(1.0);
+        let cos_theta = Vec3::dot(&unit_direction, &rec.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
 
         let cannot_refract = ri * sin_theta > 1.0;
-        let dir = if cannot_refract || self.reflectance(cos_theta, ri) > rand.random_float_range(0.0, 0.9999)
+        let dir = if cannot_refract || self.reflectance(cos_theta, ri) > rand.random_float_range(0.0, 1.0)
             {Vec3::reflect(&unit_direction, &rec.normal)} else 
             {Vec3::refract(&unit_direction, &rec.normal, ri)};
 
-        // Some((Ray::new(rec.point, refracted), self.albedo))
         Some((Ray::new(rec.point, dir), Color::new(1.0, 1.0, 1.0))) // TODO: Fix this to use the albedo
         
     }

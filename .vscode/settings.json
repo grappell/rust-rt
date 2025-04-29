@@ -4,6 +4,7 @@
         "defocus",
         "gbyte",
         "Lambertian",
-        "rbyte"
+        "rbyte",
+        "trpl"
     ]
 }

@@ -1,7 +1,9 @@
-use rand::distr::{Distribution, Uniform}; // Ensure you import the correct Uniform type
+use rand::distr::{Distribution, SampleString, Uniform};
+use rand_distr::Alphanumeric; // Ensure you import the correct Uniform type
 
 use crate::util::Vec3;
 
+#[derive(Clone)]
 pub struct RandomGenerator {
     rng: rand::rngs::ThreadRng,
 }
@@ -56,5 +58,9 @@ impl RandomGenerator {
                 return p
             }
         }
+    }
+
+    pub fn random_chars(&mut self, len: usize) -> String {
+        Alphanumeric.sample_string(&mut self.rng, len)
     }
 }

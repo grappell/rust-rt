@@ -1,7 +1,4 @@
 use std::ops;
-use rand::Rng;
-
-use crate::random::RandomGenerator;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
